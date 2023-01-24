@@ -40,8 +40,11 @@ import static com.couchbase.client.java.query.QueryOptions.queryOptions;
  */
 public class Main {
 
-    private static final String OTEL_COLLECTOR_ENDPOINT = "http://localhost:4317";
+//    private static final String OTEL_COLLECTOR_ENDPOINT = "http://localhost:4317";
+    private static final String OTEL_COLLECTOR_ENDPOINT = "http://performance.sdk.couchbase.com:4317";
     //http://localhost:16686  http://localhost:14250
+
+    private static final String SERVICE_NAME = "observability-service";
     private static final String connectionString = "couchbases://cb.qk-hjde0zwax7hr3.cloud.couchbase.com";
     private static final String username = "abhijeet";
     private static final String password = "Password@P1";
@@ -147,7 +150,6 @@ public class Main {
     }
 
     private static OpenTelemetry getOpenTelemetryCouchbaseMethod() {
-        String SERVICE_NAME = "observability-service";
 
         // Set the OpenTelemetry SDK's SdkTracerProvider
         SdkTracerProvider sdkTracerProvider = SdkTracerProvider.builder()
@@ -158,7 +160,7 @@ public class Main {
                                 .put("service.name", SERVICE_NAME)
                                 .build()))
                 .addSpanProcessor(BatchSpanProcessor.builder(OtlpGrpcSpanExporter.builder()
-                        .setEndpoint("http://localhost:4317")
+                        .setEndpoint(OTEL_COLLECTOR_ENDPOINT)
                         .build()).build())
                 .setSampler(Sampler.alwaysOn())
                 .build();
