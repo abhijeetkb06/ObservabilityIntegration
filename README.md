@@ -41,3 +41,18 @@ Step 3: Run you java program or application and then navigate to http://localhos
 
 Jaeger port details could be found here:
 https://www.jaegertracing.io/docs/1.41/getting-started/
+
+Common Errors below if collector endpoint port not set properly and when running Jaeger in mac directly instead of docker:
+
+ERROR 1:
+SEVERE: Failed to export spans. The request could not be executed. Full error message: Failed to connect to localhost/[0:0:0:0:0:0:0:1]:4317
+Jan 23, 2023 8:41:04 PM io.opentelemetry.sdk.internal.ThrottlingLogger log
+SEVERE: Too many log messages detected. Will only log once per minute from now on.
+Jan 23, 2023 8:41:04 PM io.opentelemetry.sdk.internal.ThrottlingLogger doLog
+SEVERE: Failed to export spans. The request could not be executed. Full error message: Failed to connect to localhost/[0:0:0:0:0:0:0:1]:4317
+
+OR
+
+ERROR 2:
+Jan 23, 2023 8:43:54 PM io.opentelemetry.sdk.internal.ThrottlingLogger doLog
+SEVERE: Failed to export spans. The request could not be executed. Full error message: stream was reset: NO_ERROR

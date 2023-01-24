@@ -189,9 +189,6 @@ public class Main {
           /*  List<GetResult> results = Flux.fromIterable(docsToFetch)
                     .flatMap(key -> reactiveCollection.get(key, GetOptions.getOptions().transcoder(RawStringTranscoder.INSTANCE)).onErrorResume(e -> Mono.empty())).collectList().block();
 */
-           /* List<GetResult> results = Flux.fromIterable(docsToFetch)
-                    .flatMap(key -> reactiveCollection.get(key, GetOptions.getOptions().transcoder(RawStringTranscoder.INSTANCE)).onErrorResume(e -> Mono.empty())).collectList().block();
-*/
 
             //If you want to set a parent for a SDK request, you can do it in the respective *Options:
             //getOptions().parentSpan(OpenTelemetryRequestSpan.wrap(parentSpan))
