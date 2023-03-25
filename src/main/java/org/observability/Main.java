@@ -40,8 +40,8 @@ import static com.couchbase.client.java.query.QueryOptions.queryOptions;
  */
 public class Main {
 
-//    private static final String OTEL_COLLECTOR_ENDPOINT = "http://localhost:4317";
-    private static final String OTEL_COLLECTOR_ENDPOINT = "http://performance.sdk.couchbase.com:4317";
+    private static final String OTEL_COLLECTOR_ENDPOINT = "http://localhost:4317";
+//    private static final String OTEL_COLLECTOR_ENDPOINT = "http://performance.sdk.couchbase.com:4317";
     //http://localhost:16686  http://localhost:14250
 
     private static final String SERVICE_NAME = "observability-service";
@@ -54,14 +54,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-//        Cluster cluster = getJaegerTrace();
-
-        OpenTelemetry openTelemetry = getOpenTelemetryCouchbaseMethod();
-        Cluster cluster = Cluster.connect(connectionString, ClusterOptions.clusterOptions(username, password)
-                .environment(env -> {
-                    // Provide the OpenTelemetry object to the Couchbase SDK
-                    env.requestTracer(OpenTelemetryRequestTracer.wrap(openTelemetry));
-                }));
+        Cluster cluster = getJaegerTrace();
 
         // Custom environment connection.
 //        Cluster cluster = Cluster.connect(connectionString, username, password);
@@ -72,18 +65,13 @@ public class Main {
         Scope scope = bucket.scope(SCOPE);
         Collection collection = scope.collection(COLLECTION);
 
-        bulkReadCollectionReactive(cluster, bucket, scope, collection,openTelemetry);
+        bulkReadCollectionReactive(cluster, bucket, scope, collection);
     }
 
 
     private static Cluster getJaegerTrace() {
 
         OpenTelemetry openTelemetry = getOpenTelemetryCouchbaseMethod();
-//        OpenTelemetry openTelemetry = initOpenTelemetry();
-
-      /*  Tracer tracer = getTracer(openTelemetry);
-        setSpan(tracer, openTelemetry);*/
-
 
         Cluster cluster = Cluster.connect(connectionString, ClusterOptions.clusterOptions(username, password)
                 .environment(env -> {
@@ -92,61 +80,6 @@ public class Main {
                 }));
 
         return cluster;
-    }
-
-    private static void setSpan(Tracer tracer, OpenTelemetry openTelemetry) {
-        //        Span parentSpan = tracer.spanBuilder("/").setSpanKind(SpanKind.CLIENT).startSpan();
-        /*an automated way to propagate the parent span on the current thread*/
-        for (int index = 0; index < 3; index++) {
-            /*create a span by specifying the name of the span. The start and end time of the span is automatically set by the OpenTelemetry SDK*/
-            Span parentSpan = tracer.spanBuilder("parentSpan").setNoParent().startSpan();
-            System.out.println("In parent method. TraceID : {}"+ parentSpan.getSpanContext().getTraceId());
-
-            /*put the span into the current Context*/
-            try (io.opentelemetry.context.Scope scope = parentSpan.makeCurrent()) {
-
-                /*annotate the span with attributes specific to the represented operation, to provide additional context*/
-                parentSpan.setAttribute("parentIndex", index);
-                childMethod(parentSpan,openTelemetry);
-            } catch (Throwable throwable) {
-                parentSpan.setStatus(StatusCode.ERROR, "Something wrong with the parent span");
-            } finally {
-                /*closing the scope does not end the span, this has to be done manually*/
-                parentSpan.end();
-            }
-        }
-
-        /*sleep for a bit to let everything settle*/
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static Tracer getTracer(OpenTelemetry openTelemetry) {
-        Tracer tracer = openTelemetry.getTracer("org.observability.Main");
-//        Tracer tracer = openTelemetry.getTracerProvider().get("opentel-observability", "1.0");
-        return tracer;
-    }
-
-    private static void childMethod(Span parentSpan,OpenTelemetry openTelemetry) {
-
-        Tracer tracer = getTracer(openTelemetry);
-
-        /*setParent(...) is not required, `Span.current()` is automatically added as the parent*/
-        Span childSpan = tracer.spanBuilder("childSpan").setParent(Context.current().with(parentSpan))
-                .startSpan();
-        System.out.println("In child method. TraceID : {}"+ childSpan.getSpanContext().getTraceId());
-
-        /*put the span into the current Context*/
-        try (io.opentelemetry.context.Scope scope = childSpan.makeCurrent()) {
-            Thread.sleep(1000);
-        } catch (Throwable throwable) {
-            childSpan.setStatus(StatusCode.ERROR, "Something wrong with the child span");
-        } finally {
-            childSpan.end();
-        }
     }
 
     private static OpenTelemetry getOpenTelemetryCouchbaseMethod() {
@@ -172,7 +105,7 @@ public class Main {
         return openTelemetry;
     }
 
-    private static void bulkReadCollectionReactive(Cluster cluster, Bucket bucket, Scope scope, Collection collection,OpenTelemetry openTelemetry) {
+    private static void bulkReadCollectionReactive(Cluster cluster, Bucket bucket, Scope scope, Collection collection) {
         try {
 
             ReactiveCluster reactiveCluster = cluster.reactive();
@@ -190,19 +123,19 @@ public class Main {
 
           /*  List<GetResult> results = Flux.fromIterable(docsToFetch)
                     .flatMap(key -> reactiveCollection.get(key, GetOptions.getOptions().transcoder(RawStringTranscoder.INSTANCE)).onErrorResume(e -> Mono.empty())).collectList().block();
-*/
+          */
 
             //If you want to set a parent for a SDK request, you can do it in the respective *Options:
             //getOptions().parentSpan(OpenTelemetryRequestSpan.wrap(parentSpan))
 
-            Span parentSpan = getTracer(openTelemetry).spanBuilder("parentSpan").setNoParent().startSpan();
-            System.out.println("In parent method. TraceID : "+ parentSpan.getSpanContext().getTraceId());
+/*            Span parentSpan = getTracer(openTelemetry).spanBuilder("parentSpan").setNoParent().startSpan();
+            System.out.println("In parent method. TraceID : "+ parentSpan.getSpanContext().getTraceId());*/
 
             // Perform bulk read by controlling number of threads in parallel function
             List<GetResult>  results =  Flux.fromIterable(docsToFetch)
                     .parallel(100)
                     .runOn(Schedulers.boundedElastic())
-                    .flatMap(key -> reactiveCollection.get(key, getOptions().parentSpan(OpenTelemetryRequestSpan.wrap(parentSpan)).transcoder(RawStringTranscoder.INSTANCE))
+                    .flatMap(key -> reactiveCollection.get(key, getOptions().transcoder(RawStringTranscoder.INSTANCE))
                             .onErrorResume(e -> Mono.empty()))
                     .sequential()
                     .collectList()
@@ -215,9 +148,51 @@ public class Main {
             System.out.println("Total Docs: " + results.size());
 
             String returned = results.get(0).contentAs(String.class);
+
+            /*sleep for a bit to let everything settle*/
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             System.out.println("Done" + returned);
         } catch (DocumentNotFoundException ex) {
             System.out.println("Document not found!");
         }
+    }
+
+    private static void setSpan(Tracer tracer, OpenTelemetry openTelemetry) {
+        //        Span parentSpan = tracer.spanBuilder("/").setSpanKind(SpanKind.CLIENT).startSpan();
+        /*an automated way to propagate the parent span on the current thread*/
+        for (int index = 0; index < 3; index++) {
+            /*create a span by specifying the name of the span. The start and end time of the span is automatically set by the OpenTelemetry SDK*/
+            Span parentSpan = tracer.spanBuilder("parentSpan").setNoParent().startSpan();
+            System.out.println("In parent method. TraceID : {}"+ parentSpan.getSpanContext().getTraceId());
+
+            /*put the span into the current Context*/
+            try (io.opentelemetry.context.Scope scope = parentSpan.makeCurrent()) {
+
+                /*annotate the span with attributes specific to the represented operation, to provide additional context*/
+                parentSpan.setAttribute("parentIndex", index);
+            } catch (Throwable throwable) {
+                parentSpan.setStatus(StatusCode.ERROR, "Something wrong with the parent span");
+            } finally {
+                /*closing the scope does not end the span, this has to be done manually*/
+                parentSpan.end();
+            }
+        }
+
+        /*sleep for a bit to let everything settle*/
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static Tracer getTracer(OpenTelemetry openTelemetry) {
+        Tracer tracer = openTelemetry.getTracer("org.observability.Main");
+//        Tracer tracer = openTelemetry.getTracerProvider().get("opentel-observability", "1.0");
+        return tracer;
     }
 }
