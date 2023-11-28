@@ -1,8 +1,10 @@
 package org.observability;
 
+import com.couchbase.client.core.env.LoggerConfig;
 import com.couchbase.client.core.error.DocumentNotFoundException;
 import com.couchbase.client.java.*;
 import com.couchbase.client.java.codec.RawStringTranscoder;
+import com.couchbase.client.java.env.ClusterEnvironment;
 import com.couchbase.client.java.kv.GetOptions;
 import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.client.java.query.QueryResult;
@@ -28,6 +30,8 @@ import reactor.core.scheduler.Schedulers;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static com.couchbase.client.java.kv.GetOptions.getOptions;
@@ -56,9 +60,11 @@ public class Main {
 
         Cluster cluster = getJaegerTrace();
 
-        // Custom environment connection.
-//        Cluster cluster = Cluster.connect(connectionString, username, password);
+/*        Logger rootLogger = Logger.getLogger("com.couchbase");
+        rootLogger.setLevel(Level.OFF); // or INFO or whatever*/
 
+
+//        Logger.getLogger("com.couchbase.client").setLevel(Level.OFF);
         // Get a bucket reference
         Bucket bucket = cluster.bucket(BUCKET);
         bucket.waitUntilReady(Duration.ofSeconds(10));
